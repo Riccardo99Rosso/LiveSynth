@@ -32,6 +32,8 @@ saveSession = {
 	file.write(tmpGroups.asCompileString.replace("'play' -> true", "'play' -> false"));
 	file.write("^");
 	file.write(~midiMaps.asCompileString);
+	file.write("^");
+	file.write(~allBus.asCompileString);
 	file.close;
 
 	mainPath.fileNameWithoutExtension;
@@ -56,6 +58,7 @@ openSession = {
 
 			~groups = this.interpret(toParse[1]);
 			~midiMaps = this.interpret(toParse[2]);
+			~allBus = this.interpret(toParse[3]);
 			tmpGroups = ~groups;
 			tmpGroups.do({
 				arg item, i;

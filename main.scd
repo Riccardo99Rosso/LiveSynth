@@ -13,7 +13,10 @@ stopAllBtn, playAllBtn, reloadBtn, panicBtn, duplicateBtn, midiBtn;
 var metersViewVisible = false, playLabel,
 stopLabel, playColor, stopColor, addBtn, removeBtn, beforeBtn, afterBtn,
 mainFullScreen = true, moveBefore = false, moveAfter = false, toMove,
-cpuIndicatorRoutine, playColorNow, clicked, relativeWhere, linkModeBtn;
+cpuIndicatorRoutine, playColorNow, relativeWhere, linkModeBtn;
+//Linker
+var allBusStart = [], allBusEnd = [], currBus, clicked, busReceiver,
+createBus = false, tmpClicked, movingX, movingY;
 //Inspector Controls
 var inspectorComponents;
 //Workspace Controls
@@ -38,6 +41,7 @@ import = {
 ~synths = [];
 ~groups = [];
 ~midi = [];
+~allBus = [];
 ~path = thisProcess.nowExecutingPath.dirname;
 
 srcPath = ~path +/+ "src";
@@ -64,8 +68,6 @@ synthsManager[\loadAll].();
 
 s = Server.local;
 MIDIIn.disconnectAll;
-MIDIClient.init;
-MIDIIn.connectAll;
 
 /*** MAIN MENU ***/
 mainMenu = UserView().fixedHeight_(30);
@@ -258,6 +260,14 @@ addBtn = Button(synthMenu, Rect(25, 12, 100, 30))
 	playStopView.refresh;
 	synthsManager[\loadAll].();
 
+	/*~allBus.collect({
+	arg bus, i;
+	var sender, receiver;
+
+	bus.x = bus.x + 1;
+	bus.y = bus.y + 1;
+	});*/
+
 	searchSynthList.action_({
 		arg sel;
 		moveBefore = false;
@@ -293,7 +303,7 @@ removeBtn = Button(synthMenu, Rect(25, 52, 100, 30))
 	moveAfter = false;
 	if(synthsList.value != nil){
 		var list, midiListToDelete = [], keyPlayToDelete,
-		keyFreeToDelete;
+		keyFreeToDelete, count;
 		list = synthsList.items;
 
 		~midiMaps.do({
@@ -324,11 +334,14 @@ removeBtn = Button(synthMenu, Rect(25, 52, 100, 30))
 		MIDIdef(keyPlayToDelete).free;
 		MIDIdef(keyFreeToDelete).free;
 
+		linkerManager[\removeSynth].(~groups[synthsList.value][0][\id]);
+
 		~groups[synthsList.value][0][\group].free;
 		~groups.removeAt(synthsList.value);
 		list.removeAt(synthsList.value);
 		synthsList.items_(list);
 		inspector.visible_(false);
+
 		~linkerView.refresh;
 
 		if(list.size > 0,
@@ -357,7 +370,7 @@ removeBtn = Button(synthMenu, Rect(25, 52, 100, 30))
 		constants[\viewBackground]]])
 });
 
-//Move beforeT
+//Move before
 beforeBtn = Button(synthMenu, Rect(25, 92, 100, 30))
 .states_([["Before", constants[\menuStringSelectedColor],
 	constants[\viewBackground]]])
@@ -406,8 +419,10 @@ linkModeBtn = Button(synthMenu, Rect(25, 172, 100, 30))
 .states_([
 	["Move", constants[\menuStringSelectedColor],
 		constants[\linkModeMoveColor]],
-	["Bus", constants[\menuStringSelectedColor],
-		constants[\linkModeBusColor]],
+	["Create bus", constants[\menuStringSelectedColor],
+		constants[\linkModeCreateBusColor]],
+	["Delete bus", constants[\menuStringSelectedColor],
+		constants[\linkModeDeleteBusColor]],
 	["Inspector", constants[\menuStringSelectedColor],
 		constants[\linkModeInspectorColor]]
 ])
@@ -667,6 +682,39 @@ parametersView = mainGuiCreator[\parametersView].();
 ~linkerView = mainGuiCreator[\linkerView].()
 .visible_(false)
 .drawFunc_({
+	var endBus, dirPos, theta, j,
+	start, end, dirDist;
+
+	//~allBus.postln;
+
+	dirDist = constants[\rectSize]/2;
+	Pen.color = constants[\busColor];
+	~allBus.do({
+		arg busDict;
+		var fromId, toId, from, to;
+
+		fromId = busDict[\fromId];
+		toId = busDict[\toId];
+		from = busDict[\from];
+		to = busDict[\to];
+
+		Pen.moveTo(from.x@from.y);
+		theta = atan2(
+			to.y - from.y,
+			to.x - from.x);
+
+		dirPos = Point(
+			(to.x - (dirDist*cos(theta))),
+			(to.y - (dirDist*sin(theta)))
+		);
+
+		Pen.lineTo(to.x@to.y);
+		Pen.addArc(dirPos, 10, 0*pi, 2*pi);
+		Pen.fillStroke;
+		busReceiver = nil;
+
+	});
+
 	~groups.do { |synth, i|
 		if(~idForMap == i,
 			{
@@ -685,35 +733,52 @@ parametersView = mainGuiCreator[\parametersView].();
 	~groups.do { |synth, i|
 		if(synth[0][\rect].contains(Point(x, y))) {
 			clicked = i;
+			tmpClicked = clicked;
 			relativeWhere = Point(x, y) - synth[0][\rect].origin;
 			synthsList.valueAction_(clicked);
-			"clicked".postln;
 		};
+	};
+	if(linkModeBtn.value == 1 && clicked.notNil) {
+		#allBusStart, allBusEnd, currBus, clicked =
+		linkerManager[\createBus].(allBusStart, allBusEnd, currBus, clicked);
+		createBus = true;
+		~linkerView.refresh;
 	};
 };
 ~linkerView.mouseMoveAction = { |v, x, y|
-	var rect, tmpCoord;
-	if(linkModeBtn.value == 0 && clicked.notNil) {
-		rect = ~groups[clicked][0][\rect];
-		tmpCoord = Point(x, y) - relativeWhere;
-		x.postln;
-		y.postln;
-		if(((tmpCoord.x > -10) &&
-			(tmpCoord.y > -10) &&
-			(tmpCoord.y < (~linkerView.bounds.height - 10)) &&
-			(tmpCoord.x < (~linkerView.bounds.width - 10))
-		),
-		{
-			rect.origin = tmpCoord;
-			~groups[clicked][0][\rect] = rect;
-			~linkerView.refresh;
-		},
 
-		);
-	}
+	if(linkModeBtn.value == 0 && clicked.notNil) {
+		linkerManager[\moveSynth].(relativeWhere, clicked,
+			allBusStart, allBusEnd, x, y)
+	};
+	if(createBus == true, {
+		~allBus.collect({
+			arg busDict;
+
+			if(busDict[\fromId] == busDict[\toId], {
+				busDict[\to] = Point(x, y);
+			});
+
+		});
+	});
+	~linkerView.refresh;
 };
 ~linkerView.mouseUpAction = {
+	arg v, x, y;
+
+	if(createBus == true,{
+		createBus = false;
+		#allBusStart, allBusEnd, busReceiver =
+		linkerManager[\insertBus].(
+			busReceiver, clicked,
+			allBusStart, allBusEnd, currBus, x, y
+		);
+	});
+	/*allBusStart.postln;
+	allBusEnd.postln;*/
+	/*~allBus.postln;*/
 	clicked = nil;
+	~linkerView.refresh;
 };
 
 /*** WORKSPACE ***/
@@ -960,13 +1025,14 @@ emptyWorkspace = {
 	playColorNow = constants[\playColorDeactivated];
 	playStopView.refresh;
 	~groups = [];
+	~allBus = [];
 	~midiMaps = Array.fill(8, { Dictionary() });
 	Server.freeAll;
 };
 
-/*parametersView.visible_(false);
+parametersView.visible_(false);
 ~linkerView.visible_(true);
-linkModeBtn.visible_(true);*/
+linkModeBtn.visible_(true);
 )
 
 ColorHsvPicker()
