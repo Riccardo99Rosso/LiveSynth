@@ -16,7 +16,7 @@ mainFullScreen = true, moveBefore = false, moveAfter = false, toMove,
 cpuIndicatorRoutine, playColorNow, relativeWhere, linkModeBtn;
 //Linker
 var allBusStart = [], allBusEnd = [], currBus, clicked, busReceiver,
-createBus = false, tmpClicked, movingX, movingY;
+createBus = false, tmpClicked, movingX, movingY, busEliminator = [];
 //Inspector Controls
 var inspectorComponents;
 //Workspace Controls
@@ -715,6 +715,25 @@ parametersView = mainGuiCreator[\parametersView].();
 
 	});
 
+	Pen.color = constants[\busEliminatorColor];
+	if(busEliminator[0].notNil){
+		start = busEliminator[2];
+		end = busEliminator[3];
+		Pen.moveTo(start.x@start.y);
+
+		theta = atan2(
+			end.y - start.y,
+			end.x - start.x);
+
+		dirPos = Point(
+			(end.x - (dirDist*cos(theta))),
+			(end.y - (dirDist*sin(theta)))
+		);
+		Pen.lineTo(end.x@end.y);
+		Pen.addArc(dirPos, 10, 0*pi, 2*pi);
+		Pen.fillStroke;
+	};
+
 	~groups.do { |synth, i|
 		if(~idForMap == i,
 			{
@@ -744,6 +763,16 @@ parametersView = mainGuiCreator[\parametersView].();
 		createBus = true;
 		~linkerView.refresh;
 	};
+	if(linkModeBtn.value == 2 && clicked.notNil) {
+		busEliminator = [];
+		createBus = false;
+		busEliminator = busEliminator.add(clicked);
+		busEliminator = busEliminator.add(clicked);
+		busEliminator = busEliminator.add(Point(0,0));
+		busEliminator = busEliminator.add(Point(0,0));
+		busEliminator = linkerManager[\busEliminator].(busEliminator, clicked);
+		~linkerView.refresh;
+	}
 };
 ~linkerView.mouseMoveAction = { |v, x, y|
 
@@ -761,6 +790,10 @@ parametersView = mainGuiCreator[\parametersView].();
 
 		});
 	});
+	if(linkModeBtn.value == 2 && busEliminator[0].notNil){
+		busEliminator[3] = Point(x, y);
+	};
+
 	~linkerView.refresh;
 };
 ~linkerView.mouseUpAction = {
@@ -774,9 +807,30 @@ parametersView = mainGuiCreator[\parametersView].();
 			allBusStart, allBusEnd, currBus, x, y
 		);
 	});
-	/*allBusStart.postln;
-	allBusEnd.postln;*/
-	/*~allBus.postln;*/
+
+	if(linkModeBtn.value == 2 && busEliminator[0].notNil, {
+		~groups.do { |synth, i|
+			if(synth[0][\rect].contains(Point(x, y))) {
+				busReceiver = i;
+			};
+		};
+		if(((busReceiver.notNil) && (busReceiver != clicked)), {
+			var toDelete, from, to;
+
+			from = ~groups[clicked][0][\id];
+			to = ~groups[busReceiver][0][\id];
+
+			~allBus.do({
+				arg busDict, index;
+
+				if(((busDict[\fromId] == from) && (busDict[\toId] == to)) , {
+					toDelete = index;
+				});
+			});
+			~allBus.removeAt(toDelete);
+		});
+	});
+	busEliminator = [];
 	clicked = nil;
 	~linkerView.refresh;
 };

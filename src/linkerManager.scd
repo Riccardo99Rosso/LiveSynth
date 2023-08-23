@@ -1,6 +1,6 @@
 var dict = Dictionary();
 var import, constants;
-var createBus, insertBus, moveSynth, removeSynth;
+var createBus, insertBus, moveSynth, removeSynth, busEliminator;
 
 import = {
 	|path|
@@ -133,6 +133,20 @@ moveSynth = {
 	});
 };
 
+busEliminator = {
+	arg busEliminator, clicked;
+	var centroid;
+
+	centroid = ~groups[clicked][0][\rect].origin;
+	centroid = Point(
+		(centroid.x+(constants[\rectSize]/2)),
+		(centroid.y)+(constants[\rectSize]/2));
+	busEliminator[2] = centroid;
+	busEliminator[3] = centroid;
+
+	busEliminator;
+};
+
 removeSynth = {
 	arg id;
 	var toDelete = [];
@@ -163,6 +177,7 @@ removeSynth = {
 dict.put(\createBus, createBus);
 dict.put(\insertBus, insertBus);
 dict.put(\moveSynth, moveSynth);
+dict.put(\busEliminator, busEliminator);
 dict.put(\removeSynth, removeSynth);
 
 dict;

@@ -48,6 +48,7 @@ dict.put(\linkModeMoveColor, Color.new255(79, 21, 141));
 dict.put(\linkModeCreateBusColor, Color.new255(21, 141, 76));
 dict.put(\linkModeDeleteBusColor, Color.new255(229, 68, 68));
 dict.put(\busColor, Color.new255(21, 141, 76));
+dict.put(\busEliminatorColor, Color.new255(164, 21, 21));
 dict.put(\linkModeInspectorColor, Color.new255(21, 93, 141));
 
 dict.put(\rectSize, 50);
