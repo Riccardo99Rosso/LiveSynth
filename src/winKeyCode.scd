@@ -1,0 +1,63 @@
+var dict = Dictionary();
+
+dict.put(\esc, 16777216);
+dict.put(\ctrl, 262144);
+dict.put(\shift, 131072);
+dict.put(\enter, 16777220);
+dict.put(\backspace, 16777219);
+dict.put(\alt, 524288);
+dict.put(\altgr, 786432);
+dict.put(\spacebar, 32);
+dict.put(\tab, 16777217);
+dict.put(\ctrlShift, 393216);
+
+dict.put(\eatc, 200);
+dict.put(\plus, 43);
+dict.put(\plusZoom, 93);
+dict.put(\minus, 45);
+dict.put(\minusZoom, 95);
+dict.put(\oatc, 210);
+dict.put(\aatc, 192);
+dict.put(\uatc, 217);
+dict.put(\comma, 44);
+dict.put(\dot, 46);
+
+dict.put(\a, 65);
+dict.put(\b, 66);
+dict.put(\c, 67);
+dict.put(\d, 68);
+dict.put(\e, 69);
+dict.put(\f, 70);
+dict.put(\g, 71);
+dict.put(\h, 72);
+dict.put(\i, 73);
+dict.put(\j, 74);
+dict.put(\k, 75);
+dict.put(\l, 76);
+dict.put(\m, 77);
+dict.put(\n, 78);
+dict.put(\o, 79);
+dict.put(\p, 80);
+dict.put(\q, 81);
+dict.put(\r, 82);
+dict.put(\s, 83);
+dict.put(\t, 84);
+dict.put(\u, 85);
+dict.put(\v, 86);
+dict.put(\w, 87);
+dict.put(\x, 88);
+dict.put(\y, 89);
+dict.put(\z, 90);
+
+dict.put(\0, 48);
+dict.put(\1, 49);
+dict.put(\2, 50);
+dict.put(\3, 51);
+dict.put(\4, 52);
+dict.put(\5, 53);
+dict.put(\6, 54);
+dict.put(\7, 55);
+dict.put(\8, 56);
+dict.put(\9, 57);
+
+dict;
