@@ -754,7 +754,15 @@ parametersView = mainGuiCreator[\parametersView].();
 			clicked = i;
 			tmpClicked = clicked;
 			relativeWhere = Point(x, y) - synth[0][\rect].origin;
+			clicked.postln;
+			/*~groups[clicked][1].collect({
+				arg item;
+				if(item[\value].isMemberOf(Bus) == true, {
+					item[\number] = false;
+				});
+			});*/
 			synthsList.valueAction_(clicked);
+			0.postln;
 		};
 	};
 	if(linkModeBtn.value == 1 && clicked.notNil) {
@@ -764,6 +772,7 @@ parametersView = mainGuiCreator[\parametersView].();
 		~linkerView.refresh;
 	};
 	if(linkModeBtn.value == 2 && clicked.notNil) {
+		"1".postln;
 		busEliminator = [];
 		createBus = false;
 		busEliminator = busEliminator.add(clicked);
@@ -843,12 +852,18 @@ parametersView = mainGuiCreator[\parametersView].();
 					~groups[clicked][1][busDict[\fromControl]][\value] = 0;
 					~groups[clicked][0][\group].set(
 						busDict[\fromControl], 0);
-					if(counter == 1, {
-						~groups[busReceiver][1][busDict[\endControl]][\number] = true;
-						~groups[busReceiver][1][busDict[\endControl]][\value] = 0;
-						~groups[busReceiver][0][\group].set(
-							busDict[\endControl], 0);
-					})
+					"hereOne".postln;
+					if(counter == 1,
+						{
+							~groups[busReceiver][1][busDict[\endControl]][\number] = true;
+							~groups[busReceiver][1][busDict[\endControl]][\value] = 0;
+							~groups[busReceiver][0][\group].set(
+								busDict[\endControl], 0);
+						},
+						{
+							"hereTwo".postln;
+						}
+					)
 				});
 			});
 
@@ -1111,8 +1126,15 @@ emptyWorkspace = {
 	~groups = [];
 	~allBus = [];
 	~midiMaps = Array.fill(8, { Dictionary() });
+	~linkerView.refresh;
 	Server.freeAll;
 };
+
+parametersView.visible_(false);
+inspector.visible_(false);
+~linkerView.visible_(true);
+linkModeBtn.visible_(true);
+
 )
 
 ColorHsvPicker()

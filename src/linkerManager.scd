@@ -163,7 +163,7 @@ busEliminator = {
 		(centroid.y)+(constants[\rectSize]/2));
 	busEliminator[2] = centroid;
 	busEliminator[3] = centroid;
-
+	2.postln;
 	busEliminator;
 };
 
@@ -359,19 +359,10 @@ linkWin = {
 					busDict.put(\endControl, toControlsMenu.value);
 					synthsList.valueAction_(clicked);
 
+
 					//Il to è già preso, me ne frego dei parametri inseriti e non creo un nuovo
 					//bus. Utilizzo quello già presente
-					if(~groups[busReceiver][1][toControlsMenu.value][\number] == false &&
-						~groups[clicked][1][fromControlsMenu.value][\number] == true,
-						{
-							var bus, control;
-							bus = ~groups[busReceiver][1][toControlsMenu.value][\value];
-							~groups[clicked][1][fromControlsMenu.value][\value] = bus;
-							~groups[clicked][0][\group].set(
-								startControl, bus);
-						},
 
-					);
 					if(~groups[clicked][1][fromControlsMenu.value][\number] == false, {
 						linked = false;
 					});
@@ -402,10 +393,30 @@ linkWin = {
 								~groups[busReceiver][1][toControlsMenu.value][\number] = false;
 							},
 							{
-								linked = false;
-							}
+
+							});
+						},
+						{
+							"try".postln;
+							~groups[busReceiver][1][toControlsMenu.value][\number].postln;
+							~groups[clicked][1][fromControlsMenu.value][\number].postln;
+							linked = false;
+							if(~groups[busReceiver][1][toControlsMenu.value][\number] == false &&
+								~groups[clicked][1][fromControlsMenu.value][\number] == true,
+								{
+									var bus, control;
+									bus = ~groups[busReceiver][1][toControlsMenu.value][\value];
+									~groups[clicked][1][fromControlsMenu.value][\value] = bus;
+									~groups[clicked][1][fromControlsMenu.value][\number] = false;
+									~groups[clicked][0][\group].set(
+										startControl, bus);
+									"eccomi".postln;
+									linked = true;
+								},
+
 							);
-					});
+						}
+					);
 				}
 			)
 		});
