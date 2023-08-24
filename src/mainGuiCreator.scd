@@ -3,7 +3,7 @@ var import, constants, keyCode;
 var mainWin, mainMenu, viewContainer, metersView, workspaceView,
 synthMenu, synthsList, fixedWidthSyntList, synthListContainer,
 playStopView, inspector, parametersView, linkerView, controlsCreator, inspectorComponents,
-newFile, clearAll, midiPlay;
+newFile, clearAll, midiPlay, create;
 
 import = {
 	|path|

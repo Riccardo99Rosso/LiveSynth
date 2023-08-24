@@ -800,12 +800,20 @@ parametersView = mainGuiCreator[\parametersView].();
 	arg v, x, y;
 
 	if(createBus == true,{
+		var linkerWin, done;
+
 		createBus = false;
-		#allBusStart, allBusEnd, busReceiver =
+		#allBusStart, allBusEnd, busReceiver, done =
 		linkerManager[\insertBus].(
 			busReceiver, clicked,
 			allBusStart, allBusEnd, currBus, x, y
 		);
+		if(done == true, {
+			#linkerWin =
+			linkerManager[\linkWin].(busReceiver, clicked,
+				allBusStart, allBusEnd, currBus, x, y, synthsList);
+			linkerWin.front;
+		});
 	});
 
 	if(linkModeBtn.value == 2 && busEliminator[0].notNil, {
@@ -815,19 +823,40 @@ parametersView = mainGuiCreator[\parametersView].();
 			};
 		};
 		if(((busReceiver.notNil) && (busReceiver != clicked)), {
-			var toDelete, from, to;
+			var toDelete = nil, from, to, counter = 0;
 
 			from = ~groups[clicked][0][\id];
 			to = ~groups[busReceiver][0][\id];
+			~allBus.do({
+				arg busDict, index;
+				if((busDict[\toId] == to) , {
+					counter = counter + 1;
+				});
+			});
 
 			~allBus.do({
 				arg busDict, index;
 
 				if(((busDict[\fromId] == from) && (busDict[\toId] == to)) , {
 					toDelete = index;
+					~groups[clicked][1][busDict[\fromControl]][\number] = true;
+					~groups[clicked][1][busDict[\fromControl]][\value] = 0;
+					~groups[clicked][0][\group].set(
+						busDict[\fromControl], 0);
+					if(counter == 1, {
+						~groups[busReceiver][1][busDict[\endControl]][\number] = true;
+						~groups[busReceiver][1][busDict[\endControl]][\value] = 0;
+						~groups[busReceiver][0][\group].set(
+							busDict[\endControl], 0);
+					})
 				});
 			});
-			~allBus.removeAt(toDelete);
+
+			synthsList.valueAction_(clicked);
+
+			if(toDelete != nil, {
+				~allBus.removeAt(toDelete);
+			});
 		});
 	});
 	busEliminator = [];
@@ -841,6 +870,7 @@ workspaceView = mainGuiCreator[\workspaceView].()
 	.margins_(0).spacing_(0));
 
 /*** CONTROLS INIT ***/
+
 #controlSliders,slidersLabel,
 maxSliders, minSliders, slidersValue =
 mainGuiCreator[\controlsCreator].(parametersView);
@@ -1083,10 +1113,6 @@ emptyWorkspace = {
 	~midiMaps = Array.fill(8, { Dictionary() });
 	Server.freeAll;
 };
-
-parametersView.visible_(false);
-~linkerView.visible_(true);
-linkModeBtn.visible_(true);
 )
 
 ColorHsvPicker()
