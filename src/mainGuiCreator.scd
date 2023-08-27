@@ -25,7 +25,7 @@ mainWin = {
 	win = Window(constants[\programName] ++ "untitled")
 	.setTopLeftBounds(Rect(100, 50, 800, 600))
 	.background_(constants[\mainBackground])
-	.fullScreen
+	//.fullScreen
 	.front;
 
 	win;

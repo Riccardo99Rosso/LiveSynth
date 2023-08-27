@@ -163,14 +163,12 @@ busEliminator = {
 		(centroid.y)+(constants[\rectSize]/2));
 	busEliminator[2] = centroid;
 	busEliminator[3] = centroid;
-	2.postln;
 	busEliminator;
 };
 
 removeSynth = {
 	arg id;
 	var toDelete = [];
-	~allBus.postln;
 	~allBus.do({
 		arg busDict, index;
 		var fromId, toId, from, to;
@@ -187,7 +185,6 @@ removeSynth = {
 	if(toDelete.size > 0, {
 		toDelete.do({
 			arg item;
-			item.postln;
 			~allBus.removeAt(item);
 		})
 	});
@@ -215,9 +212,6 @@ linkWin = {
 					busReceiver = i;
 				};
 			};
-			/*		clicked.postln;
-			busReceiver.postln;*/
-
 			if(((busReceiver.notNil) && (busReceiver != clicked)), {
 				var toDelete;
 
@@ -397,9 +391,6 @@ linkWin = {
 							});
 						},
 						{
-							"try".postln;
-							~groups[busReceiver][1][toControlsMenu.value][\number].postln;
-							~groups[clicked][1][fromControlsMenu.value][\number].postln;
 							linked = false;
 							if(~groups[busReceiver][1][toControlsMenu.value][\number] == false &&
 								~groups[clicked][1][fromControlsMenu.value][\number] == true,
@@ -410,7 +401,6 @@ linkWin = {
 									~groups[clicked][1][fromControlsMenu.value][\number] = false;
 									~groups[clicked][0][\group].set(
 										startControl, bus);
-									"eccomi".postln;
 									linked = true;
 								},
 

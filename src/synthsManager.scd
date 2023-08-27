@@ -282,7 +282,7 @@ synthEditor = {
 		file.close;
 	});
 
-	editor = Window("Synths editor")
+	editor = Window("Synth editor")
 	.setTopLeftBounds(Rect(left+5, top+5, 700, 400))
 	.background_(constants[\mainBackground])
 	.acceptsMouseOver_(true)
@@ -793,7 +793,7 @@ showOnInspector = {
 	});
 	inspectorComponents[\minBox].action_({
 		arg val;
-		val = inspectorComponents[\minBox].value.asInteger;
+		val = inspectorComponents[\minBox].value.asFloat;
 		minSlider.string_(val);
 		~groups[selected][1][i][\min] = val;
 		controlSlider.value_(~groups[selected][1][i][\value].linlin(
@@ -805,7 +805,7 @@ showOnInspector = {
 	});
 	inspectorComponents[\maxBox].action_({
 		arg val;
-		val = inspectorComponents[\maxBox].value.asInteger;
+		val = inspectorComponents[\maxBox].value.asFloat;
 		maxSlider.string_(val);
 		~groups[selected][1][i][\max] = val;
 		controlSlider.value_(~groups[selected][1][i][\value].linlin(
@@ -848,7 +848,7 @@ showOnInspector = {
 			{
 				var ccNum;
 				ccNum = key.asString.replace("midiCtrl","");
-				ccNum = ccNum.asInteger;
+				ccNum = ccNum.asFloat;
 				inspectorComponents[\midiCCBox].value_(ccNum);
 			}
 		);

@@ -16,7 +16,8 @@ mainFullScreen = true, moveBefore = false, moveAfter = false, toMove,
 cpuIndicatorRoutine, playColorNow, relativeWhere, linkModeBtn;
 //Linker
 var allBusStart = [], allBusEnd = [], currBus, clicked, busReceiver,
-createBus = false, tmpClicked, movingX, movingY, busEliminator = [];
+createBus = false, tmpClicked, movingX, movingY, busEliminator = [],
+names = [];
 //Inspector Controls
 var inspectorComponents;
 //Workspace Controls
@@ -114,12 +115,10 @@ editBtn = StaticText(mainMenu, Rect(100, 0, 40, 30))
 .font_(constants[\mainToolBarFont])
 .mouseDownAction_({
 	Menu(
-		MenuAction("Synths editor", {
+		MenuAction("Synth editor", {
 			synthEditor = synthsManager[\synthEditor].(editBtn).front;
 		})
-		.font_(constants[\mainToolBarMenuFont]),
-		MenuAction("Preferences", { "A selected".postln })
-		.font_(constants[\mainToolBarMenuFont]),
+		.font_(constants[\mainToolBarMenuFont])
 	).front;
 })
 .mouseOverAction_({
@@ -223,7 +222,7 @@ helpBtn = StaticText(mainMenu, Rect(285, 0, 45, 30))
 .font_(constants[\mainToolBarFont])
 .mouseDownAction_({
 	Menu(
-		MenuAction("", { "A selected".postln })
+		MenuAction("", { "Help selected".postln })
 		.font_(constants[\mainToolBarMenuFont]),
 	).front;
 })
@@ -260,14 +259,6 @@ addBtn = Button(synthMenu, Rect(25, 12, 100, 30))
 	playStopView.refresh;
 	synthsManager[\loadAll].();
 
-	/*~allBus.collect({
-	arg bus, i;
-	var sender, receiver;
-
-	bus.x = bus.x + 1;
-	bus.y = bus.y + 1;
-	});*/
-
 	searchSynthList.action_({
 		arg sel;
 		moveBefore = false;
@@ -303,60 +294,72 @@ removeBtn = Button(synthMenu, Rect(25, 52, 100, 30))
 	moveAfter = false;
 	if(synthsList.value != nil){
 		var list, midiListToDelete = [], keyPlayToDelete,
-		keyFreeToDelete, count;
-		list = synthsList.items;
-
-		~midiMaps.do({
-			arg dict, i;
-			dict.keysValuesDo({
-				arg key, value;
-				if(~groups[synthsList.value][0][\id] == value[2],
-					{
-						midiListToDelete =
-						midiListToDelete.add([i, key]);
-						key = key.asSymbol;
-						MIDIdef(key).free;
-					}
-				)
+		keyFreeToDelete, doIt = true;
+		~allBus.do({
+			arg busDict, index;
+			if((
+				(busDict[\toId] == ~groups[synthsList.value][0][\id]) ||
+				(busDict[\fromId] == ~groups[synthsList.value][0][\id])
+			),{
+				doIt = false;
 			});
 		});
-		midiListToDelete.do({
-			arg item;
-			~midiMaps[item[0]].removeAt(item[1]);
+
+		if(doIt == true, {
+			list = synthsList.items;
+
+			~midiMaps.do({
+				arg dict, i;
+				dict.keysValuesDo({
+					arg key, value;
+					if(~groups[synthsList.value][0][\id] == value[2],
+						{
+							midiListToDelete =
+							midiListToDelete.add([i, key]);
+							key = key.asSymbol;
+							MIDIdef(key).free;
+						}
+					)
+				});
+			});
+			midiListToDelete.do({
+				arg item;
+				~midiMaps[item[0]].removeAt(item[1]);
+			});
+			keyPlayToDelete = "midiPlay" ++
+			~groups[synthsList.value][0][\id].value.asString;
+			keyPlayToDelete = keyPlayToDelete.asSymbol;
+			keyFreeToDelete = "midiFree" ++
+			~groups[synthsList.value][0][\id].value.asString;
+			keyFreeToDelete = keyFreeToDelete.asSymbol;
+
+			MIDIdef(keyPlayToDelete).free;
+			MIDIdef(keyFreeToDelete).free;
+
+			linkerManager[\removeSynth].(~groups[synthsList.value][0][\id]);
+
+			~groups[synthsList.value][0][\group].free;
+			~groups.removeAt(synthsList.value);
+			list.removeAt(synthsList.value);
+			synthsList.items_(list);
+			inspector.visible_(false);
+
+			~linkerView.refresh;
+
+			if(list.size > 0,
+				{
+					synthsList.valueAction_(0);
+				},
+				{
+					synthsManager[\hideSliders].(
+						controlSliders, slidersLabel,
+						maxSliders, minSliders, slidersValue);
+					playColor = constants[\playColorDeactivated];
+					playColorNow = constants[\playColorDeactivated];
+					playStopView.refresh;
+				}
+			);
 		});
-		keyPlayToDelete = "midiPlay" ++
-		~groups[synthsList.value][0][\id].value.asString;
-		keyPlayToDelete = keyPlayToDelete.asSymbol;
-		keyFreeToDelete = "midiFree" ++
-		~groups[synthsList.value][0][\id].value.asString;
-		keyFreeToDelete = keyFreeToDelete.asSymbol;
-
-		MIDIdef(keyPlayToDelete).free;
-		MIDIdef(keyFreeToDelete).free;
-
-		linkerManager[\removeSynth].(~groups[synthsList.value][0][\id]);
-
-		~groups[synthsList.value][0][\group].free;
-		~groups.removeAt(synthsList.value);
-		list.removeAt(synthsList.value);
-		synthsList.items_(list);
-		inspector.visible_(false);
-
-		~linkerView.refresh;
-
-		if(list.size > 0,
-			{
-				synthsList.valueAction_(0);
-			},
-			{
-				synthsManager[\hideSliders].(
-					controlSliders, slidersLabel,
-					maxSliders, minSliders, slidersValue);
-				playColor = constants[\playColorDeactivated];
-				playColorNow = constants[\playColorDeactivated];
-				playStopView.refresh;
-			}
-		);
 	};
 })
 .mouseOverAction_({
@@ -423,8 +426,8 @@ linkModeBtn = Button(synthMenu, Rect(25, 172, 100, 30))
 		constants[\linkModeCreateBusColor]],
 	["Delete bus", constants[\menuStringSelectedColor],
 		constants[\linkModeDeleteBusColor]],
-	["Inspector", constants[\menuStringSelectedColor],
-		constants[\linkModeInspectorColor]]
+	/*	["Inspector", constants[\menuStringSelectedColor],
+	constants[\linkModeInspectorColor]]*/
 ])
 .canFocus_(false)
 .visible_(false)
@@ -679,13 +682,12 @@ layout_(VLayout(playStopView, synthsList).margins_(0).spacing_(0));
 parametersView = mainGuiCreator[\parametersView].();
 
 /*** PARAMETERS VIEW ***/
+names = Array.newClear(128);
 ~linkerView = mainGuiCreator[\linkerView].()
 .visible_(false)
 .drawFunc_({
 	var endBus, dirPos, theta, j,
 	start, end, dirDist;
-
-	//~allBus.postln;
 
 	dirDist = constants[\rectSize]/2;
 	Pen.color = constants[\busColor];
@@ -734,6 +736,11 @@ parametersView = mainGuiCreator[\parametersView].();
 		Pen.fillStroke;
 	};
 
+	names.collect({
+		arg text;
+		text.remove;
+	});
+
 	~groups.do { |synth, i|
 		if(~idForMap == i,
 			{
@@ -743,6 +750,17 @@ parametersView = mainGuiCreator[\parametersView].();
 				Pen.color_(constants[\ovalColor]);
 			}
 		);
+
+		names[i] =
+		StaticText(~linkerView, Rect(
+			synth[0][\rect].origin.x-dirDist,
+			synth[0][\rect].origin.y - 25,
+			100, 20))
+		.font_(constants[\synthsEditorCodeFont])
+		.align_(\center)
+		.string_(synth[0][\name])
+		.stringColor_(constants[\mainBackground]);
+
 		Pen.addOval(synth[0][\rect]);
 		Pen.draw;
 	};
@@ -754,15 +772,13 @@ parametersView = mainGuiCreator[\parametersView].();
 			clicked = i;
 			tmpClicked = clicked;
 			relativeWhere = Point(x, y) - synth[0][\rect].origin;
-			clicked.postln;
 			/*~groups[clicked][1].collect({
-				arg item;
-				if(item[\value].isMemberOf(Bus) == true, {
-					item[\number] = false;
-				});
+			arg item;
+			if(item[\value].isMemberOf(Bus) == true, {
+			item[\number] = false;
+			});
 			});*/
 			synthsList.valueAction_(clicked);
-			0.postln;
 		};
 	};
 	if(linkModeBtn.value == 1 && clicked.notNil) {
@@ -772,7 +788,6 @@ parametersView = mainGuiCreator[\parametersView].();
 		~linkerView.refresh;
 	};
 	if(linkModeBtn.value == 2 && clicked.notNil) {
-		"1".postln;
 		busEliminator = [];
 		createBus = false;
 		busEliminator = busEliminator.add(clicked);
@@ -852,16 +867,12 @@ parametersView = mainGuiCreator[\parametersView].();
 					~groups[clicked][1][busDict[\fromControl]][\value] = 0;
 					~groups[clicked][0][\group].set(
 						busDict[\fromControl], 0);
-					"hereOne".postln;
 					if(counter == 1,
 						{
 							~groups[busReceiver][1][busDict[\endControl]][\number] = true;
 							~groups[busReceiver][1][busDict[\endControl]][\value] = 0;
 							~groups[busReceiver][0][\group].set(
 								busDict[\endControl], 0);
-						},
-						{
-							"hereTwo".postln;
 						}
 					)
 				});
@@ -1045,12 +1056,10 @@ open = {
 					id = value[2];
 
 					cc = key.asString.replace("midiCtrl","");
-					cc = cc.asInteger;
+					cc = cc.asFloat;
 
 					MIDIdef.cc(key, {
 						arg ...args;
-						//args.postln;
-
 						~groups.do({
 							arg item, j;
 							if(id == item[0][\id]){
@@ -1130,10 +1139,10 @@ emptyWorkspace = {
 	Server.freeAll;
 };
 
-parametersView.visible_(false);
+/*parametersView.visible_(false);
 inspector.visible_(false);
 ~linkerView.visible_(true);
-linkModeBtn.visible_(true);
+linkModeBtn.visible_(true);*/
 
 )
 
