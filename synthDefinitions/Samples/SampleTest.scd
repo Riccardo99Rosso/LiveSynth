@@ -11,7 +11,7 @@ SynthDef(\SampleTest, {
 	path = path.asString;
 	buf = Buffer.read(s, path);
 	Out.ar( out,
-		PlayBuf.ar(2, buf, BufRateScale.kr(buf), 			doneAction: 2)
+		PlayBuf.ar(2, buf, BufRateScale.kr(buf), 			loop: 1, doneAction: 2)
 		* VarLag.kr(mul, 0.1)
 	)
 

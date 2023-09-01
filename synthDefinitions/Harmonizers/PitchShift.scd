@@ -1,7 +1,7 @@
 (
 /*
 Description:
-
+Mono PitchShift
 */
 
 SynthDef(\PitchShift, {

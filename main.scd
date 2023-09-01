@@ -6,14 +6,15 @@ synthsManager, audioManager, fileManager, linkerManager;
 //Views
 var mainWin, fileBtn, mainMenu, editBtn, viewBtn, audioBtn,
 helpBtn, metersView,viewContainer, workspaceView, synthEditor = nil,
-synthMenu, synthsList, synthListContainer, playStopView, inspector, parametersView, searchSynthWin = nil, searchSynthField, searchSynthList,
-serverNotRunningWin, serverMeter, freqScope, cpuIndicator, cpuValue, clearBtn,
-stopAllBtn, playAllBtn, reloadBtn, panicBtn, duplicateBtn, midiBtn;
+synthMenu, synthsList, synthListContainer, playStopView, inspector, parametersView,
+searchSynthWin = nil, searchSynthField, searchSynthList,
+serverNotRunningWin, serverMeter, freqScope, cpuIndicator, cpuValue, clearBtn, panicBtn, duplicateBtn, midiBtn;
 //View Controls
 var metersViewVisible = false, playLabel,
 stopLabel, playColor, stopColor, addBtn, removeBtn, beforeBtn, afterBtn,
 mainFullScreen = true, moveBefore = false, moveAfter = false, toMove,
-cpuIndicatorRoutine, playColorNow, relativeWhere, linkModeBtn;
+cpuIndicatorRoutine, playColorNow, relativeWhere, linkModeBtn, reloadSessionBtn,
+playAllBtn, stopAllBtn;
 //Linker
 var allBusStart = [], allBusEnd = [], currBus, clicked, busReceiver,
 createBus = false, tmpClicked, movingX, movingY, busEliminator = [],
@@ -23,8 +24,10 @@ var inspectorComponents;
 //Workspace Controls
 var controlSliders, slidersLabel, maxSliders, minSliders, slidersValue,
 emptyWorkspace;
+//Recorder
+var currentPath;
 //Session functions
-var filePath = nil, new, save, saveAs, open;
+var filePath = nil, new, save, saveAs, open, opening;
 
 /*** IMPORT DEFINITION ***/
 import = {
@@ -67,6 +70,7 @@ synthsManager[\loadAll].();
 ~selectedMidiMap = 0;
 ~midiMaps = Array.fill(8, { Dictionary() });
 
+currentPath = thisProcess.platform.recordingsDir;
 s = Server.local;
 MIDIIn.disconnectAll;
 
@@ -184,6 +188,12 @@ audioBtn = StaticText(mainMenu, Rect(215, 0, 45, 30))
 .mouseDownAction_({
 	Menu(
 		MenuAction.separator("Audio/Midi"),
+		MenuAction("Recorder", {
+			var recWin;
+			#recWin, currentPath =
+			mainGuiCreator[\recordWin].(audioBtn, currentPath);
+			recWin.front;
+		}).font_(constants[\mainToolBarMenuFont]),
 		MenuAction("Load all Synths", {
 			synthsManager[\loadAll].();
 		}).font_(constants[\mainToolBarMenuFont]),
@@ -426,8 +436,6 @@ linkModeBtn = Button(synthMenu, Rect(25, 172, 100, 30))
 		constants[\linkModeCreateBusColor]],
 	["Delete bus", constants[\menuStringSelectedColor],
 		constants[\linkModeDeleteBusColor]],
-	/*	["Inspector", constants[\menuStringSelectedColor],
-	constants[\linkModeInspectorColor]]*/
 ])
 .canFocus_(false)
 .visible_(false)
@@ -492,6 +500,131 @@ midiBtn = Button(synthMenu, Rect(25, 252, 100, 30))
 .mouseLeaveAction_({
 	midiBtn.font_(constants[\buttonFont]);
 	midiBtn.states_([["Midi Play", constants[\menuStringSelectedColor],
+		constants[\clearBtnBackground]]])
+});
+
+//Reload Session Btn
+reloadSessionBtn = Button(synthMenu, Rect(25, 292, 100, 30))
+.states_([["Reload All", constants[\menuStringSelectedColor],
+	constants[\clearBtnBackground]]])
+.canFocus_(false)
+.font_(constants[\buttonFont])
+.action_({
+	var path, currSel, activeList = [], currPath,
+	currName;
+	if(synthsList.items.size > 0, {
+		currPath = filePath;
+		currName = mainWin.name;
+		currSel = synthsList.value;
+
+		~groups.do({
+			arg synth;
+			activeList = activeList.add(synth[0][\play]);
+		});
+		path = ~path +/+ "tmp" +/+ "reloader.ls";
+
+		fileManager[\saveSession].(path);
+		opening.(path);
+		synthsManager[\loadAll].();
+		Routine{
+			1.wait;
+			~groups.do({
+				arg inst, selection, synth;
+				var argValueList;
+				if(activeList[selection] == true, {
+					synth = Synth(inst[0][\name],
+						target: inst[0][\group]);
+					argValueList = inst[1];
+					argValueList.do({
+						arg dict;
+						synth.set(dict[\control], dict[\value])
+					});
+					inst[0][\play] = true;
+					playColorNow = constants[\playColor];
+					playColor = playColorNow;
+					playStopView.refresh;
+				})
+			});
+		}.play(AppClock);
+
+		filePath = currPath;
+		mainWin.name = currName;
+		synthsList.valueAction_(currSel);
+	});
+})
+.mouseOverAction_({
+	reloadSessionBtn.font_(constants[\buttonMouseOnFont]);
+	reloadSessionBtn.states_([["Reload All", constants[\menuStringSelectedColor],
+		constants[\mainBackground]]])
+})
+.mouseLeaveAction_({
+	reloadSessionBtn.font_(constants[\buttonFont]);
+	reloadSessionBtn.states_([["Reload All", constants[\menuStringSelectedColor],
+		constants[\clearBtnBackground]]])
+});
+
+//Play all Synth
+playAllBtn = Button(synthMenu, Rect(25, 332, 100, 30))
+.states_([["Play All", constants[\menuStringSelectedColor],
+	constants[\clearBtnBackground]]])
+.canFocus_(false)
+.font_(constants[\buttonFont])
+.action_({
+	var activeList = [];
+
+	~groups.do({
+		arg inst, selection, synth;
+		var argValueList;
+
+		inst[0][\group].freeAll;
+		synth = Synth(inst[0][\name],
+			target: inst[0][\group]);
+		argValueList = inst[1];
+		argValueList.do({
+			arg dict;
+			synth.set(dict[\control], dict[\value])
+		});
+		inst[0][\play] = true;
+		playColorNow = constants[\playColor];
+		playColor = playColorNow;
+		playStopView.refresh;
+	});
+	synthsList.valueAction_(synthsList.value);
+})
+.mouseOverAction_({
+	playAllBtn.font_(constants[\buttonMouseOnFont]);
+	playAllBtn.states_([["Play All", constants[\menuStringSelectedColor],
+		constants[\mainBackground]]])
+})
+.mouseLeaveAction_({
+	playAllBtn.font_(constants[\buttonFont]);
+	playAllBtn.states_([["Play All", constants[\menuStringSelectedColor],
+		constants[\clearBtnBackground]]])
+});
+
+//Stop all Synth
+stopAllBtn = Button(synthMenu, Rect(25, 372, 100, 30))
+.states_([["Stop All", constants[\menuStringSelectedColor],
+	constants[\clearBtnBackground]]])
+.canFocus_(false)
+.font_(constants[\buttonFont])
+.action_({
+	~groups.do({
+		arg inst, selection;
+		inst[0][\group].freeAll;
+		inst[0][\play] = false;
+	});
+	playStopView.refresh;
+	synthsList.valueAction_(synthsList.value);
+})
+.mouseOverAction_({
+	stopAllBtn.font_(constants[\buttonMouseOnFont]);
+	stopAllBtn.states_([["Stop All", constants[\menuStringSelectedColor],
+		constants[\mainBackground]]])
+})
+.mouseLeaveAction_({
+	stopAllBtn.font_(constants[\buttonFont]);
+	stopAllBtn.states_([["Stop All", constants[\menuStringSelectedColor],
 		constants[\clearBtnBackground]]])
 });
 
@@ -1024,88 +1157,93 @@ open = {
 	moveAfter = false;
 	Dialog.openPanel({
 		arg path;
-		var name, list;
-		emptyWorkspace.();
-		#name = fileManager[\openSession].(path, controlSliders, slidersLabel,
-			maxSliders, minSliders, slidersValue, inspector,
-			inspectorComponents, synthsList);
-		if(name != nil, {
-			filePath = path;
-			mainWin.name = constants[\programName] ++ name;
-			if(~groups.size != 0,{
-				Routine{
-					0.5.wait;
-					~groups.collect({
-						arg item, i;
-						item[0][\group] =
-						Group(s.defaultGroup, 'addToTail');
-					});
-				}.play(AppClock);
-			});
+		opening.(path);
+	});
+};
 
-			~midiMaps.do({
-				arg map;
-				map.keysValuesDo({
-					arg key, value;
-					var cc, synthName, i, id,
-					min, max, val, oldVal, oldSelected, realValue,
-					sliderSpec, pos;
-
-					synthName = value[0];
-					i = value[1];
-					id = value[2];
-
-					cc = key.asString.replace("midiCtrl","");
-					cc = cc.asFloat;
-
-					MIDIdef.cc(key, {
-						arg ...args;
-						~groups.do({
-							arg item, j;
-							if(id == item[0][\id]){
-								pos = j;
-								min = item[1][i][\min];
-								max = item[1][i][\max];
-								val = args[0].asFloat;
-								val = val.linlin(0, 127,
-									min.asFloat, max.asFloat).trunc(0.001);
-							}
-						});
-
-						realValue = val.linlin(min.asFloat, max.asFloat,
-							0, 1);
-
-						if(~groups[~idForMap][0][\id] == id,
-							{
-								{controlSliders[i].valueAction_(realValue)}.defer;
-							},
-							{
-								if(~groups[pos][1][i][\warp] != \decibel){
-									sliderSpec = ControlSpec(
-										~groups[pos][1][i][\min],
-										~groups[pos][1][i][\max],
-										~groups[pos][1][i][\warp], 0.01);
-									realValue =
-									sliderSpec.map(realValue);
-								};
-								if(~groups[pos][1][i][\warp] == \decibel){
-									sliderSpec =
-									ControlSpec(0.001, 1, \exp, 0.001);
-									realValue = sliderSpec.map(realValue) - 0.001;
-								};
-								~groups[pos][1][i][\value] = realValue;
-
-								~groups[pos][0][\group].set(
-									~groups[pos][1][i][\control],
-									~groups[pos][1][i][\value]);
-							}
-						);
-
-					}, cc);
-				})
-			});
-			~linkerView.refresh;
+opening = {
+	arg path;
+	var name, list;
+	emptyWorkspace.();
+	#name = fileManager[\openSession].(path, controlSliders, slidersLabel,
+		maxSliders, minSliders, slidersValue, inspector,
+		inspectorComponents, synthsList);
+	if(name != nil, {
+		filePath = path;
+		mainWin.name = constants[\programName] ++ name;
+		if(~groups.size != 0,{
+			Routine{
+				0.5.wait;
+				~groups.collect({
+					arg item, i;
+					item[0][\group] =
+					Group(s.defaultGroup, 'addToTail');
+				});
+			}.play(AppClock);
 		});
+
+		~midiMaps.do({
+			arg map;
+			map.keysValuesDo({
+				arg key, value;
+				var cc, synthName, i, id,
+				min, max, val, oldVal, oldSelected, realValue,
+				sliderSpec, pos;
+
+				synthName = value[0];
+				i = value[1];
+				id = value[2];
+
+				cc = key.asString.replace("midiCtrl","");
+				cc = cc.asFloat;
+
+				MIDIdef.cc(key, {
+					arg ...args;
+					~groups.do({
+						arg item, j;
+						if(id == item[0][\id]){
+							pos = j;
+							min = item[1][i][\min];
+							max = item[1][i][\max];
+							val = args[0].asFloat;
+							val = val.linlin(0, 127,
+								min.asFloat, max.asFloat).trunc(0.001);
+						}
+					});
+
+					realValue = val.linlin(min.asFloat, max.asFloat,
+						0, 1);
+
+					if(~groups[~idForMap][0][\id] == id,
+						{
+							{controlSliders[i].valueAction_(realValue)}.defer;
+						},
+						{
+							if(~groups[pos][1][i][\warp] != \decibel){
+								sliderSpec = ControlSpec(
+									~groups[pos][1][i][\min],
+									~groups[pos][1][i][\max],
+									~groups[pos][1][i][\warp], 0.01);
+								realValue =
+								sliderSpec.map(realValue);
+							};
+							if(~groups[pos][1][i][\warp] == \decibel){
+								sliderSpec =
+								ControlSpec(0.001, 1, \exp, 0.001);
+								realValue = sliderSpec.map(realValue) - 0.001;
+							};
+							~groups[pos][1][i][\value] = realValue;
+
+							~groups[pos][0][\group].set(
+								~groups[pos][1][i][\control],
+								~groups[pos][1][i][\value]);
+						}
+					);
+
+				}, cc);
+			})
+		});
+		~linkerView.refresh;
 	});
 };
 
@@ -1118,6 +1256,7 @@ cpuIndicatorRoutine = Routine{
 			cpuIndicator.value = cpu/100;
 			cpuValue.string_(cpu.trunc(0.01).asString++"%");
 		});
+
 		0.2.wait;
 	});
 };

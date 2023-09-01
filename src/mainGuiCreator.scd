@@ -3,7 +3,7 @@ var import, constants, keyCode;
 var mainWin, mainMenu, viewContainer, metersView, workspaceView,
 synthMenu, synthsList, fixedWidthSyntList, synthListContainer,
 playStopView, inspector, parametersView, linkerView, controlsCreator, inspectorComponents,
-newFile, clearAll, midiPlay, create;
+newFile, clearAll, midiPlay, create, recordWin;
 
 import = {
 	|path|
@@ -684,6 +684,119 @@ midiPlay = {
 	[win];
 };
 
+recordWin = {
+	arg mainWin, currentPath;
+	var width, height, win, currPathString, currPathLabel,
+	recordBtn, timer, recFun, elapsedTime = 0, inRec = false,
+	myPath, folder, file;
+
+	width = 400;
+	height = 160;
+
+	win = Window("Recorder")
+	.setTopLeftBounds(
+		Rect(
+			mainWin.bounds.width + width,
+			mainWin.bounds.height,
+			width,
+			height
+		)
+	)
+	.background_(constants[\mainBackground])
+	.acceptsMouseOver_(true)
+	.alwaysOnTop_(true)
+	.onClose_({
+		recFun.stop;
+	});
+
+	file = "YourFile";
+	r = Recorder.new(s);
+	r.recHeaderFormat = "wav";
+	r.recSampleFormat = "int24";
+	r.filePrefix = file;
+
+	timer = StaticText(win, Rect(125, 60, 150, 30))
+	.stringColor_(constants[\synthEditorNotSavedColor])
+	.font_(constants[\timerFont])
+	.align_(\center)
+	.string_("00:00");
+
+	currPathString = StaticText(win, Rect(125, 10, 150, 30))
+	.stringColor_(constants[\synthEditorListStringColor])
+	.string_(file)
+	.align_(\center)
+	.font_(constants[\buttonFont])
+	.mouseOverAction_({
+		currPathString.font_(constants[\buttonMouseOnFont]);
+	})
+	.mouseLeaveAction_({
+		currPathString.font_(constants[\buttonFont]);
+	})
+	.mouseDownAction_({
+		FileDialog({
+			|path|
+			myPath = PathName(path[0]);
+			folder = myPath.pathOnly;
+			file = myPath.fileNameWithoutExtension;
+			currentPath = folder;
+			thisProcess.platform.recordingsDir = currentPath;
+			currPathString.string_(file);
+			r.filePrefix = file;
+		},
+		acceptMode: 1,
+		path: currentPath);
+	});
+
+	recordBtn = Button(win, Rect(125, 114, 150, 30))
+	.font_(constants[\popUpFont])
+	.canFocus_(false)
+	.states_([
+		["Record",
+			constants[\synthEditorListStringColor],
+			constants[\newFolderColor]
+		],
+		["Stop Recording",
+			constants[\synthEditorListStringColor],
+			constants[\newFolderColor]
+		]
+	])
+	.action_({
+		if(recordBtn.value == 1, {
+			Routine{
+				1.wait;
+				inRec = true;
+				r.record;
+			}.play;
+			timer.stringColor_(constants[\playColor]);
+		});
+		if(recordBtn.value == 0, {
+			inRec = false;
+			r.stopRecording;
+			timer.string_("00:00");
+			timer.stringColor_(constants[\synthEditorNotSavedColor]);
+			elapsedTime = 0;
+		});
+	});
+
+	recFun = Routine{
+		loop{
+			if(inRec == true, {
+				var min, sec;
+				elapsedTime = elapsedTime + 1;
+				min = (elapsedTime / 60).asInteger;
+				sec = elapsedTime % 60;
+				min = min.asString.padLeft(2, "00");
+				sec = sec.asString.padLeft(2, "00");
+				timer.string = min.asString ++ ":" ++ sec.asString;
+			});
+			1.wait;
+		}
+	}.play(AppClock);
+
+
+	[win, currentPath];
+};
+
 dict.put(\mainWin, mainWin);
 dict.put(\viewContainer, viewContainer);
 dict.put(\metersView, metersView);
@@ -700,5 +813,6 @@ dict.put(\inspectorComponents, inspectorComponents);
 dict.put(\newFile, newFile);
 dict.put(\clearAll, clearAll);
 dict.put(\midiPlay, midiPlay);
+dict.put(\recordWin, recordWin);
 
 dict;

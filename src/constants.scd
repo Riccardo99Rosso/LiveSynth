@@ -69,5 +69,6 @@ dict.put(\parametersMouseOnFont, Font(mouseOnFont, 20));
 dict.put(\parametersInputFont, Font(mainFont, 16));
 dict.put(\parametersInpuMouseOnFont, Font(mainFont, 18));
 dict.put(\inspectorFont, Font(mainFont, 16));
+dict.put(\timerFont, Font(mainFont, 40));
 
 dict;

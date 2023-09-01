@@ -1,10 +1,10 @@
 (
 /*
 Description:
-
+Mono duplicator
 */
 
-SynthDef(\MonoDuplicator, {
+SynthDef(\MonoDup, {
 	arg in=0, out1=0, out2=0, mul1=0.2, mul2=0.2;
 	var sig;
 
