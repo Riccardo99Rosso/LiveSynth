@@ -7,7 +7,7 @@ Description:
 SynthDef(\CelloCompTestOne, {
 	arg mul=1, out=0;
 	var path, buf;
-	path = "C:/Users/Riccardo/Desktop/STUDIO/METS/Comp3Lezioni/Progetto/Test/cello.wav";
+	path = "C:/Users/Riccardo/Desktop/STUDIO/METS/Camp3/celloOneMod.wav";
 	path = path.asString;
 	buf = Buffer.read(s, path);
 	Out.ar( out,
